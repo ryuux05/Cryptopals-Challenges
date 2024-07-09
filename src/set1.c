@@ -3,10 +3,13 @@
 #include <math.h>
 #include<stdio.h>
 
+struct uint256 {
+    uint64_t n[4];
+};
 /* a in "0123456789abcdef" */
 static int from_hex_char(char c)
 {
-    switch (c) {
+ switch (c) {
     default: return c - '0';    /* digits are guaranteed consecutive */
     case 'a': case 'A': return 10;
     case 'b': case 'B': return 11;
@@ -17,16 +20,23 @@ static int from_hex_char(char c)
     }
 }
 
-static int from_hex_string(char *hex) {
-    int val = 0;
-    int len = sizeof(hex);
+static uint64_t* from_hex_string(const char *hex) {
+    uint64_t val[4] = 0;
+    int len = strlen(hex);
+    printf("%d\n", len);
     for (int i = 0; i < len; i++)
     {
-        val += from_hex_char(hex[i]) * pow(16, len - i - 1);
-        printf("%d\n", val);
+        int num = from_hex_char(hex[i]);
+        printf("%d * %d ^ %d ", num, 16, len - i - 1);
+        val += (long long int)(num * pow(16, len - i - 1));
     }
+    printf("\n");
     return val;
 }
+
+// static int from_binary_to_hex(int *binary, int *size) {
+
+// }
 
 static int* from_decimal_to_binary(int dec, int *size) {
     if (dec == 0) {
@@ -39,22 +49,23 @@ static int* from_decimal_to_binary(int dec, int *size) {
     *size = (int)log2(dec) + 1; // Calculate the number of bits required
     int* binary = malloc(*size * sizeof(int));
     
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < *size; i++) {
         binary[i] = 0; // Initialize the array
     }
 
-    int i = size - 1;
+    int i = *size - 1;
     while (dec > 0) {
         binary[i] = dec % 2;
         dec = dec / 2;
         i--;
     }
 
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < *size; i++)
     {
         printf("%d", binary[i]);
     }
-    
+    printf("\n");
+    return binary;
 }
 
 // Function to convert an ASCII character to its hexadecimal representation
@@ -73,8 +84,8 @@ static void hex_to_char(unsigned char hex1, unsigned char hex2, char* c) {
 
 // Function to decode a hex string to a byte array
 char* string_to_hex(const char* string, int* out_len) {
-    const input_len = strlen(string);
-    const output_len = (input_len * 2) + 1; // Each char to 2 hex digits + 1 for null terminator
+    const int input_len = strlen(string);
+    const int output_len = (input_len * 2) + 1; // Each char to 2 hex digits + 1 for null terminator
     char* const out_buf = malloc(output_len);
     if(!out_buf){
         return NULL;
@@ -93,8 +104,8 @@ char* string_to_hex(const char* string, int* out_len) {
 }
 
 char* hex_to_string(const char* hex, int* out_len){
-    const input_len = strlen(hex);
-    const output_len = (input_len - 1) / 2; // Each char to 2 hex digits + 1 for null terminator
+    const int input_len = strlen(hex);
+    const int output_len = (input_len - 1) / 2; // Each char to 2 hex digits + 1 for null terminator
     char* const out_buf = malloc(output_len);
     if(!out_buf){
         return NULL;
@@ -107,10 +118,24 @@ char* hex_to_string(const char* hex, int* out_len){
     }
 
     out[output_len - 1] = '\0';
-    out_len = output_len - 1;
+    *out_len = output_len - 1;
     
     return out;
 }
+
+// Function to convert a byte array to a hex string
+char* byte_array_to_hex(const unsigned char* byte_array, size_t len) {
+    char* hex = malloc(len * 2 + 1); // 2 hex chars per byte + null terminator
+    if (!hex) return NULL;
+
+    for (size_t i = 0; i < len; ++i) {
+        sprintf(hex + i * 2, "%02x", byte_array[i]);
+    }
+    hex[len * 2] = '\0'; // Null-terminate the string
+
+    return hex;
+}
+
 
 
 char *hex_to_base64(const char *hex_string) {
@@ -168,45 +193,30 @@ char *hex_to_base64(const char *hex_string) {
     return out_buf;
 }
 
-char *fixed_XOR(const char *string1, const char *string2) {
+char *fixed_XOR(const char *hex_string1, const char *hex_string2) {
     int len1, len2, out_len;
-    unsigned char *hex1 = string_to_hex(string1, &len1);
-    unsigned char *hex2 = string_to_hex(string2, &len2);
+    uint64_t *digit[2] = {
+        from_hex_string(hex_string1),
+        from_hex_string(hex_string2)
+    };
+    printf("%d\n", digit[0]);
+    printf("%d\n", digit[1]);
+    
+    int *bytes1 = from_decimal_to_binary(digit[0], &len1);
+    int *bytes2 = from_decimal_to_binary(digit[1], &len2);
+    printf("%d\n", len1);
+    printf("%d\n", len2);
 
-    printf("%s\n", hex1);
-    printf("%s\n", hex2);
-
-    if (hex1 == NULL || hex2 == NULL) {
-        printf("Error in hex decoding\n");
-        return 0;
-    }
-
-    if (len1 != len2) {
-        printf("Length mismatch\n");
-        free(hex1);
-        free(hex2);
-        return 0;
-    }
-    char* const out_buf = malloc(len1 / 2);
+    unsigned char* out_buf = malloc(len1);
     if(!out_buf){
         return NULL;
     }
 
-    char *out = out_buf;
-    for (int i = 0; i < len1; i++)
-    {
-        out[i] = hex1[i] ^ hex2[i];
-        printf("%c\n", out[i]);
+    for (int i = 0; i < len1; ++i) {
+        out_buf[i] = bytes1[i] ^ bytes2[i];
     }
 
-    printf("%s\n", out);
-    unsigned char *string = hex_to_string(out, out_len);
-    
-  for (int i = 0; i < len1 / 2; ++i) {
-        out_buf[i] = hex1[i * 2] ^ hex2[i * 2];
-    }
-
-    return string;
+    return byte_array_to_hex(out_buf, len1);
 }
 
 void test(int dec){

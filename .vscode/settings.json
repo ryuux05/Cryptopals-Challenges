@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "set1.h": "c",
-        "string": "c"
+        "string": "c",
+        "__locale": "c",
+        "ios": "c"
     }
 }

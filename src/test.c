@@ -69,8 +69,6 @@ int main(void)
     // int len = 3;
     // int result = test(hex_str);
     // printf("Hexadecimal %s to integer is %d\n", hex_str, result);
-
-    test(10);
     
 
     return failures > 0;
